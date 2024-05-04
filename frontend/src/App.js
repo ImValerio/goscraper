@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Result from './components/Result';
 import './App.css';
 
 function App() {
@@ -6,7 +7,7 @@ function App() {
   const [urls,setUrls] = useState("")
   const [pattern,setPattern] = useState("")
   const [isLoading,setIsLoading] = useState(false)
-  const [result,setResult] = useState("")
+  const [result,setResult] = useState([])
 
   const scrapeUrls = async () => {
     setIsLoading(true)
@@ -32,7 +33,7 @@ function App() {
   return (
     <div className="w-full h-full flex justify-center items-center flex-col">
       <h1 className='text-5xl font-bold my-3'><span className='text-cyan-500'>Go</span>Scraper</h1>
-      <div className='flex flex-col w-10/12'>
+      <div className='flex flex-col w-screen max-w-screen-lg px-5 my-3'>
         <textarea className='text-xl my-1 border border-1 p-1' placeholder='https://en.wikipedia.org/wiki/Computer_programming' value={urls} onChange={(e) => setUrls(e.target.value)}>
 
         </textarea>
@@ -42,6 +43,12 @@ function App() {
         <button className='text-2xl font-bold px-2 py-1 bg-cyan-500 hover:bg-cyan-700 text-white transition-all' onClick={()=>scrapeUrls()}>SCRAPE</button>
 
       </div>
+      <div className='flex'>
+        {
+          result.map(el=><Result element={el}/>)
+        }
+      </div>
+
     </div>
   );
 }

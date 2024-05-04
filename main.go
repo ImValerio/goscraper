@@ -132,6 +132,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
 		tokens = append(tokens, &token)
 
 	}
+
 	fmt.Println("found ", len(tokens), " tokens")
 
 	index := 0
