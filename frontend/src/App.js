@@ -55,8 +55,20 @@ function App() {
     setSetups([...setups, setup]);
   };
 
+  const removeSetup = (urls, pattern) => {
+    const newSetups = setups.filter(
+      (setup) => setup.urls !== urls && setup.pattern !== pattern
+    );
+
+    setSetups(newSetups);
+
+    window.localStorage.setItem("setups", JSON.stringify(newSetups));
+  };
+
   return (
-    <AppContext.Provider value={{ urls, setUrls, pattern, setPattern }}>
+    <AppContext.Provider
+      value={{ urls, setUrls, pattern, setPattern, removeSetup }}
+    >
       <div className="w-full h-full flex justify-center items-center flex-col">
         <h1 className="text-5xl font-bold my-3">
           <span className="text-cyan-500">Go</span>Scraper
