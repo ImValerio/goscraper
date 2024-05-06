@@ -16,9 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Change directory to frontend
-      run: cd frontend
     - name: Use Node.js ${{ matrix.node-version }}
+      working-directory: ./frontend
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
