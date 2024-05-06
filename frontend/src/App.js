@@ -95,10 +95,10 @@ function App() {
               SCRAPE
             </button>
             <button
-              className="text-2xl font-bold px-2 py-1 bg-cyan-500 hover:bg-cyan-700 text-white transition-all grow ml-1"
+              className="text-2xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all ml-1"
               onClick={() => saveSetup()}
             >
-              SAVE SETUP
+              <img src="save.svg" className="svg-white" />
             </button>
           </div>
         </div>
