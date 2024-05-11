@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -41,7 +42,10 @@ func main() {
 
 	router.Post("/scrape", scrapeUrl)
 
-	http.ListenAndServe("localhost:5000", router)
+	addr := "localhost:5000"
+
+	slog.Info("Server started on: " + addr)
+	http.ListenAndServe(addr, router)
 }
 
 func scrapeUrl(w http.ResponseWriter, r *http.Request) {
@@ -104,18 +108,8 @@ func (m *Miner) printTokens(wg *sync.WaitGroup, tags []string) {
 
 }
 
-func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
-	defer wg.Done()
-	res, err := http.Get(m.Url)
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	tkz := html.NewTokenizer(res.Body)
-
+func loadTokens(tkz *html.Tokenizer) []*html.Token {
 	var tokens []*html.Token
-
 	for {
 
 		tokenType := tkz.Next()
@@ -132,6 +126,32 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
 		tokens = append(tokens, &token)
 
 	}
+
+	return tokens
+
+}
+func clearData(token *html.Token) string {
+	content := token.Data
+	content = strings.ReplaceAll(content, "\\n", "\n")
+	content = strings.ReplaceAll(content, "\\t", "\t")
+
+	// Trim leading and trailing whitespace
+	content = strings.TrimSpace(content)
+
+	return content
+}
+
+func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
+	defer wg.Done()
+	res, err := http.Get(m.Url)
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	tkz := html.NewTokenizer(res.Body)
+
+	tokens := loadTokens(tkz)
 
 	fmt.Println("found ", len(tokens), " tokens")
 
@@ -172,12 +192,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
 				if innerIndex+1 > len(tokens)-1 {
 					continue
 				}
-				content := token.Data
-				content = strings.ReplaceAll(content, "\\n", "\n")
-				content = strings.ReplaceAll(content, "\\t", "\t")
-
-				// Trim leading and trailing whitespace
-				content = strings.TrimSpace(content)
+				content := clearData(token)
 				fmt.Println("CONTENT:", content)
 				if content != "" {
 					m.Res = append(m.Res, content)
