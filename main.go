@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/html"
 )
 
@@ -26,7 +28,18 @@ type ScrapeDto struct {
 	Tags []string `json:"tags"`
 }
 
+var rdb *redis.Client
+var ctx context.Context
+
 func main() {
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	ctx = context.Background()
+
 	router := chi.NewRouter()
 	cors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -49,6 +62,7 @@ func main() {
 }
 
 func scrapeUrl(w http.ResponseWriter, r *http.Request) {
+
 	w.Header().Set("Content-type", "application/json")
 	var req ScrapeDto
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -65,8 +79,20 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, miner := range miners {
-		wg.Add(1)
-		miner.scrapeUrl(&wg, req.Tags)
+
+		id := generateId(miner.Url, req.Tags)
+
+		val, err := rdb.Get(ctx, id).Result()
+		if err == redis.Nil {
+			wg.Add(1)
+			miner.scrapeUrl(&wg, req.Tags)
+
+		} else if err != nil {
+			panic(err)
+		} else {
+			fmt.Println("cache hit")
+			miner.Res = strings.Split(val, "|")
+		}
 	}
 
 	wg.Wait()
@@ -75,35 +101,16 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 	encoder.Encode(miners)
 }
 
-func (m *Miner) printTokens(wg *sync.WaitGroup, tags []string) {
-	defer wg.Done()
-	res, err := http.Get(m.Url)
+func generateId(url string, tags []string) string {
+	return url + strings.Join(tags, "")
+}
 
+func storeInCache(miner *Miner, tags []string) {
+	key := generateId(miner.Url, tags)
+	value := strings.Join(miner.Res, "|") // Store as a comma-separated string
+	err := rdb.Set(ctx, key, value, 0).Err()
 	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	tkz := html.NewTokenizer(res.Body)
-
-	counter := 0
-
-	for counter < 100 {
-
-		// tokenBefore := tkz.Token()
-		tokenType := tkz.Next()
-		token := tkz.Token()
-		if tokenType == html.StartTagToken {
-			fmt.Println("-> ", token.Data)
-		}
-		if tokenType == html.ErrorToken {
-			err := tkz.Err()
-			if err == io.EOF {
-				//end of the file, break out of the loop
-				break
-			}
-			log.Fatalf("error tokenizing HTML: %v", tkz.Err())
-		}
-		counter++
+		panic(err)
 	}
 
 }
@@ -143,6 +150,7 @@ func clearData(token *html.Token) string {
 
 func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
 	defer wg.Done()
+	defer storeInCache(m, tags)
 	res, err := http.Get(m.Url)
 
 	if err != nil {
@@ -173,7 +181,6 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
 			if counter == 0 {
 				prevIndex = index + 1
 			}
-			// fmt.Println("----> ", token.Data, token.ype)
 			if counter == len(tags)-1 {
 
 				innerIndex := index
