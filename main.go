@@ -74,26 +74,28 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, miner := range miners {
-
-		id := generateId(miner.Url, req.Tags)
-
-		val, err := rdb.Get(ctx, id).Result()
-		if err == redis.Nil {
-			wg.Add(1)
-			miner.scrapeUrl(&wg, req.Tags)
-
-		} else if err != nil {
-			panic(err)
-		} else {
-			fmt.Println("cache hit")
-			miner.Res = strings.Split(val, "|")
-		}
+		handleMiner(miner, req, &wg)
 	}
 
 	wg.Wait()
 	encoder := json.NewEncoder(w)
 
 	encoder.Encode(miners)
+}
+
+func handleMiner(miner *Miner, req ScrapeDto, wg *sync.WaitGroup) {
+	id := generateId(miner.Url, req.Tags)
+
+	val, err := rdb.Get(ctx, id).Result()
+	if err == redis.Nil {
+		wg.Add(1)
+		miner.scrapeUrl(wg, req.Tags)
+	} else if err != nil {
+		panic(err)
+	} else {
+		fmt.Println("cache hit")
+		miner.Res = strings.Split(val, "|")
+	}
 }
 
 func generateId(url string, tags []string) string {
