@@ -31,7 +31,8 @@ function App() {
     const urlsToScrape = urls.split("\n");
     const tags = pattern.split("->");
 
-    const res = await fetch("http://localhost:5000/scrape", {
+    const serverHost = process.env.SERVER_HOST || "localhost";
+    const res = await fetch(`http://${serverHost}:5000/scrape`, {
       method: "POST",
       headers: {
         "Content-type": "application/json",

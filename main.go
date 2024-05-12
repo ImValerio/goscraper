@@ -8,6 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -23,22 +24,50 @@ type ScrapeDto struct {
 	Tags []string `json:"tags"`
 }
 
-var rdb *redis.Client
-var ctx context.Context
+type ServerConfig struct {
+	Port        string
+	RedisClient *redis.Client
+	Ctx         context.Context
+}
 
+var serverConfig ServerConfig
+
+func loadServerConfig() {
+
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "localhost"
+	}
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "5000"
+	}
+	port = ":" + port
+
+	serverConfig = ServerConfig{
+		Port: port,
+		RedisClient: redis.NewClient(&redis.Options{
+			Addr:     redisHost + ":6379",
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		}),
+		Ctx: context.Background(),
+	}
+}
 func main() {
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	loadServerConfig()
 
-	ctx = context.Background()
+	// Check if connected to the Redis server successfully
+	_, err := serverConfig.RedisClient.Ping(serverConfig.Ctx).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
+	slog.Info("Connected to Redis server")
 
 	router := chi.NewRouter()
 	cors := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -48,16 +77,19 @@ func main() {
 	router.Use(cors.Handler)
 	router.Use(middleware.Logger)
 
+	router.Get("/", home)
 	router.Post("/scrape", scrapeUrl)
 
-	addr := "localhost:5000"
+	slog.Info("Server started on port: " + serverConfig.Port)
+	http.ListenAndServe(serverConfig.Port, router)
+}
 
-	slog.Info("Server started on: " + addr)
-	http.ListenAndServe(addr, router)
+func home(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "application/json")
+	w.Write([]byte(`{"message": "welcome"}`))
 }
 
 func scrapeUrl(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Set("Content-type", "application/json")
 	var req ScrapeDto
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -86,7 +118,7 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 func handleMiner(miner *Miner, req ScrapeDto, wg *sync.WaitGroup) {
 	id := generateId(miner.Url, req.Tags)
 
-	val, err := rdb.Get(ctx, id).Result()
+	val, err := serverConfig.RedisClient.Get(serverConfig.Ctx, id).Result()
 	if err == redis.Nil {
 		wg.Add(1)
 		miner.scrapeUrl(wg, req.Tags)
@@ -105,42 +137,36 @@ func generateId(url string, tags []string) string {
 func storeInCache(miner *Miner, tags []string) {
 	key := generateId(miner.Url, tags)
 	value := strings.Join(miner.Res, "|") // Store as a comma-separated string
-	err := rdb.Set(ctx, key, value, 0).Err()
+	err := serverConfig.RedisClient.Set(serverConfig.Ctx, key, value, 0).Err()
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 func loadTokens(tkz *html.Tokenizer) []*html.Token {
 	var tokens []*html.Token
 	for {
-
 		tokenType := tkz.Next()
 		token := tkz.Token()
 
 		if tokenType == html.ErrorToken {
 			err := tkz.Err()
 			if err == io.EOF {
-				//end of the file, break out of the loop
 				break
 			}
 			log.Fatalf("error tokenizing HTML: %v", tkz.Err())
 		}
 		tokens = append(tokens, &token)
-
 	}
 
 	return tokens
-
 }
+
 func clearData(token *html.Token) string {
 	content := token.Data
 	content = strings.ReplaceAll(content, "\\n", "\n")
 	content = strings.ReplaceAll(content, "\\t", "\t")
-
-	// Trim leading and trailing whitespace
-	content = strings.TrimSpace(content)
+	content = strings.TrimSpace(content) // Trim leading and trailing whitespace
 
 	return content
 }
