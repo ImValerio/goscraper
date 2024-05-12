@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext, createContext } from "react";
 import Result from "./components/Result";
 import Setups from "./components/Setups";
+import Modal from "./components/Modal";
 import "./App.css";
 
 const AppContext = createContext();
@@ -13,6 +14,9 @@ function App() {
   const [setups, setSetups] = useState([]);
   const [urls, setUrls] = useState("");
   const [pattern, setPattern] = useState("");
+
+  const [modalData, setModalData] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadSetups();
@@ -68,7 +72,16 @@ function App() {
 
   return (
     <AppContext.Provider
-      value={{ urls, setUrls, pattern, setPattern, removeSetup }}
+      value={{
+        urls,
+        setUrls,
+        pattern,
+        setPattern,
+        removeSetup,
+        showModal,
+        setShowModal,
+        setModalData,
+      }}
     >
       <div className="w-full h-full flex justify-center items-center flex-col">
         <h1 className="text-5xl font-bold my-3">
@@ -108,6 +121,7 @@ function App() {
             <Result element={el} />
           ))}
         </div>
+        {showModal && <Modal data={modalData} setShowModal={setShowModal} />}
       </div>
     </AppContext.Provider>
   );
