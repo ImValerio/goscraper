@@ -31,7 +31,7 @@ const SetupItem = ({ item }) => {
 
       <div className="flex grow justify-end">
         <button
-          className="text-xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all  ml-1"
+          className="text-xl font-bold px-2 py-1 bg-transparent hover:bg-gray-200 text-white transition-all  ml-1"
           onClick={() => {
             setModalData(
               !showModal ? { urls: item.urls, pattern: item.pattern } : null
@@ -39,7 +39,7 @@ const SetupItem = ({ item }) => {
             setShowModal(!showModal);
           }}
         >
-          <img src="eye.svg" className="svg-white" />
+          <img src="eye.svg" />
         </button>
         <button
           className="text-xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all  ml-1"
