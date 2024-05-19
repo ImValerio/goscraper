@@ -70,6 +70,23 @@ function App() {
     window.localStorage.setItem("setups", JSON.stringify(newSetups));
   };
 
+  const downloadCsv = () => {
+    const rows = [["url", "data"]];
+
+    rows.push(...result.map((el) => [el.url, el.res.join("|")]));
+
+    let csvContent =
+      "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+
+    var encodedUri = encodeURI(csvContent);
+    var link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `goscraper_${Date.now()}.csv`);
+    document.body.appendChild(link); // Required for FF
+
+    link.click();
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -103,13 +120,25 @@ function App() {
           ></textarea>
           <div className="flex w-100">
             <button
-              className="text-2xl font-bold px-2 py-1 bg-cyan-500 hover:bg-cyan-700 text-white transition-all grow mr-1"
+              className={
+                result.length > 0
+                  ? "text-2xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all"
+                  : "text-2xl font-bold px-2 py-1 bg-gray-500 hover:bg-gray-700 text-white transition-all cursor-not-allowed"
+              }
+              onClick={() => downloadCsv()}
+              disabled={result.length <= 0}
+              title="Download CSV"
+            >
+              <img src="download.svg" className="svg-white" />
+            </button>
+            <button
+              className="text-2xl font-bold px-2 py-1 bg-cyan-500 hover:bg-cyan-700 text-white transition-all grow mx-2"
               onClick={() => scrapeUrls()}
             >
               SCRAPE
             </button>
             <button
-              className="text-2xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all ml-1"
+              className="text-2xl font-bold px-2 py-1 bg-green-500 hover:bg-green-700 text-white transition-all"
               onClick={() => saveSetup()}
             >
               <img src="save.svg" className="svg-white" />
