@@ -13,16 +13,13 @@ services:
   react-frontend:
     build:
       context: frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
     depends_on:
       - go-server
     environment:
       - SERVER_HOST=go-server
-      - WATCHPACK_POLLING=true
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend/:/usr/src/app/:delegated
 
   redis:
     image: redis/redis-stack-server:latest

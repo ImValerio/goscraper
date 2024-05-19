@@ -9,7 +9,6 @@ COPY package*.json ./
 
 # Install any needed packages specified in package.json
 RUN npm install
-RUN npm install -g serve
 
 # Bundle the app source inside the Docker image
 COPY . .
@@ -21,5 +20,5 @@ EXPOSE 3000
 ENV NODE_ENV development 
 
 
-# Run the app when the container launches
-CMD ["serve","-s", "build"]
+# Run the app with nodemon for live reloading on save
+CMD ["npm", "run", "start"]
