@@ -10,14 +10,16 @@ import (
 )
 
 type Miner struct {
-	Url string   `json:"url"`
-	Res []string `json:"res"`
+	Url  string   `json:"url"`
+	Tags []string `json:"tags"`
+	Res  []string `json:"res"`
 }
 
-func (m *Miner) scrapeUrl(wg *sync.WaitGroup, tags []string) {
+func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 	defer wg.Done()
-	defer storeInCache(m, tags)
+	defer m.storeInCache()
 	res, err := http.Get(m.Url)
+	tags := m.Tags
 
 	if err != nil {
 		log.Fatal(err.Error())

@@ -20,8 +20,8 @@ import (
 )
 
 type ScrapeDto struct {
-	Urls []string `json:"urls"`
-	Tags []string `json:"tags"`
+	Urls []string   `json:"urls"`
+	Tags [][]string `json:"tags"`
 }
 
 type ServerConfig struct {
@@ -101,8 +101,15 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 
 	var miners []*Miner
 
-	for _, url := range req.Urls {
-		miners = append(miners, &Miner{url, []string{}})
+	for i, url := range req.Urls {
+		var tags []string
+		if i < len(req.Urls)-1 {
+			tags = req.Tags[i]
+		} else {
+			tags = req.Tags[len(req.Tags)-1]
+		}
+
+		miners = append(miners, &Miner{url, tags, []string{}})
 	}
 
 	for _, miner := range miners {
@@ -116,12 +123,12 @@ func scrapeUrl(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMiner(miner *Miner, req ScrapeDto, wg *sync.WaitGroup) {
-	id := generateId(miner.Url, req.Tags)
+	id := miner.generateId()
 
 	val, err := serverConfig.RedisClient.Get(serverConfig.Ctx, id).Result()
 	if err == redis.Nil {
 		wg.Add(1)
-		miner.scrapeUrl(wg, req.Tags)
+		miner.scrapeUrl(wg)
 	} else if err != nil {
 		panic(err)
 	} else {
@@ -130,13 +137,13 @@ func handleMiner(miner *Miner, req ScrapeDto, wg *sync.WaitGroup) {
 	}
 }
 
-func generateId(url string, tags []string) string {
-	return url + strings.Join(tags, "")
+func (m *Miner) generateId() string {
+	return m.Url + strings.Join(m.Tags, "")
 }
 
-func storeInCache(miner *Miner, tags []string) {
-	key := generateId(miner.Url, tags)
-	value := strings.Join(miner.Res, "|") // Store as a comma-separated string
+func (m *Miner) storeInCache() {
+	key := m.generateId()
+	value := strings.Join(m.Res, "|") // Store as a comma-separated string
 	err := serverConfig.RedisClient.Set(serverConfig.Ctx, key, value, 0).Err()
 	if err != nil {
 		panic(err)

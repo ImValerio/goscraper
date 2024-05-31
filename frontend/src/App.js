@@ -33,10 +33,11 @@ function App() {
     setIsLoading(true);
 
     const urlsToScrape = urls.split("\n");
-    const tags = pattern.split("->");
+    const tags = pattern.split("\n").map((el) => el.split("->"));
 
     const serverHost = process.env.SERVER_HOST || "localhost";
-    const res = await fetch(`http://${serverHost}:5000/scrape`, {
+    const serverPort = process.env.SERVER_PORT || "5000";
+    const res = await fetch(`http://${serverHost}:${serverPort}/scrape`, {
       method: "POST",
       headers: {
         "Content-type": "application/json",
