@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sync"
 
-	"golang.org/x/exp/slog"
 	"golang.org/x/net/html"
 )
 
