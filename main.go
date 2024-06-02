@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
@@ -132,7 +131,7 @@ func handleMiner(miner *Miner, req ScrapeDto, wg *sync.WaitGroup) {
 	} else if err != nil {
 		panic(err)
 	} else {
-		fmt.Println("cache hit")
+		slog.Info("cache hit")
 		miner.Res = strings.Split(val, "|")
 	}
 }

@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 
+	"golang.org/x/exp/slog"
 	"golang.org/x/net/html"
 )
 
@@ -18,6 +20,7 @@ type Miner struct {
 func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer m.storeInCache()
+	slog.Info("Getting HTML of ", m.Url)
 	res, err := http.Get(m.Url)
 	tags := m.Tags
 
@@ -29,7 +32,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 
 	tokens := loadTokens(tkz)
 
-	fmt.Println("found ", len(tokens), " tokens")
+	slog.Info("found ", len(tokens), " tokens")
 
 	index := 0
 	prevIndex := 0
