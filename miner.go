@@ -57,7 +57,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 				for token.Type != html.TextToken {
 
 					if innerIndex+1 > len(tokens)-1 {
-						fmt.Println("BREAK")
+						// fmt.Println("BREAK")
 						counter = 0
 						index = prevIndex
 						break
@@ -70,7 +70,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 					continue
 				}
 				content := clearData(token)
-				fmt.Println("CONTENT:", content)
+				// fmt.Println("CONTENT:", content)
 				if content != "" {
 					m.Res = append(m.Res, content)
 				}
