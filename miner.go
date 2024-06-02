@@ -19,7 +19,7 @@ type Miner struct {
 func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer m.storeInCache()
-	slog.Info("Getting HTML of ", m.Url)
+	slog.Info(fmt.Sprintf("Getting HTML of %s", m.Url))
 	res, err := http.Get(m.Url)
 	tags := m.Tags
 
@@ -31,7 +31,7 @@ func (m *Miner) scrapeUrl(wg *sync.WaitGroup) {
 
 	tokens := loadTokens(tkz)
 
-	slog.Info("found ", len(tokens), " tokens")
+	slog.Info(fmt.Sprintf("found %d tokens", len(tokens)))
 
 	index := 0
 	prevIndex := 0
